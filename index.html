@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>サウナ日記</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c1552c">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="サウナ日記">
+</head>
+<body>
+<header class="app-header">
+  <h1>🧖 サウナ日記</h1>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="facilities">施設一覧</button>
+    <button class="tab-btn" data-tab="visits">訪問記録</button>
+    <button class="tab-btn" data-tab="stats">統計</button>
+  </nav>
+  <div class="header-actions">
+    <button id="btn-export" class="btn-ghost" title="データをJSONで書き出す">書き出し</button>
+    <button id="btn-import-open" class="btn-ghost" title="JSONから読み込む">読み込み</button>
+    <input type="file" id="btn-import" accept="application/json" hidden>
+  </div>
+</header>
+
+<main>
+  <!-- 施設一覧 -->
+  <section id="tab-facilities" class="tab-panel active">
+    <div class="toolbar">
+      <input type="search" id="facility-search" placeholder="施設名・住所・タグで検索">
+      <button id="btn-add-facility" class="btn-primary">＋ 施設を追加</button>
+    </div>
+    <div id="facility-list" class="card-grid"></div>
+  </section>
+
+  <!-- 訪問記録 -->
+  <section id="tab-visits" class="tab-panel">
+    <div class="toolbar">
+      <select id="visit-filter-sauna">
+        <option value="">すべての施設</option>
+      </select>
+      <button id="btn-add-visit" class="btn-primary">＋ 訪問記録を追加</button>
+    </div>
+    <div id="visit-list" class="visit-list"></div>
+  </section>
+
+  <!-- 統計 -->
+  <section id="tab-stats" class="tab-panel">
+    <div class="stat-cards" id="stat-summary"></div>
+    <div class="chart-block">
+      <h3>お気に入り施設ランキング（訪問回数）</h3>
+      <div id="chart-ranking" class="chart-container"></div>
+    </div>
+    <div class="chart-block">
+      <h3>月別訪問推移</h3>
+      <div id="chart-monthly" class="chart-container"></div>
+    </div>
+    <div class="chart-block">
+      <h3>評価の分布</h3>
+      <div id="chart-rating" class="chart-container"></div>
+    </div>
+  </section>
+</main>
+
+<!-- 施設 追加/編集 モーダル -->
+<div id="facility-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2 id="facility-modal-title">施設を追加</h2>
+    <input type="hidden" id="facility-id">
+    <label>施設名 <span class="required">*</span></label>
+    <input type="text" id="facility-name" placeholder="例：サウナ大好き温泉">
+    <label>住所・エリア</label>
+    <input type="text" id="facility-address" placeholder="例：東京都渋谷区…">
+    <label>タグ（カンマ区切り）</label>
+    <input type="text" id="facility-tags" placeholder="例：ロウリュ, 水風呂良い, 天井高い">
+    <label>メモ</label>
+    <textarea id="facility-memo" rows="3" placeholder="料金、営業時間、URLなど"></textarea>
+    <div class="modal-actions">
+      <button id="btn-delete-facility" class="btn-danger hidden">削除</button>
+      <div class="spacer"></div>
+      <button id="btn-cancel-facility" class="btn-ghost">キャンセル</button>
+      <button id="btn-save-facility" class="btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 施設 詳細モーダル -->
+<div id="facility-detail-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header-row">
+      <h2 id="detail-facility-name"></h2>
+      <button id="btn-edit-facility-from-detail" class="btn-ghost">編集</button>
+    </div>
+    <p id="detail-facility-address" class="muted"></p>
+    <div id="detail-facility-tags" class="tag-row"></div>
+    <p id="detail-facility-memo"></p>
+    <hr>
+    <h3>訪問履歴</h3>
+    <div id="detail-visit-list" class="visit-list"></div>
+    <div class="modal-actions">
+      <div class="spacer"></div>
+      <button id="btn-close-detail" class="btn-ghost">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 訪問記録 追加/編集 モーダル -->
+<div id="visit-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2 id="visit-modal-title">訪問記録を追加</h2>
+    <input type="hidden" id="visit-id">
+    <label>施設 <span class="required">*</span></label>
+    <select id="visit-sauna-select"></select>
+    <label>訪問日</label>
+    <input type="date" id="visit-date">
+    <label>評価</label>
+    <div class="star-picker" id="visit-rating" data-value="0">
+      <span data-star="1">★</span><span data-star="2">★</span><span data-star="3">★</span><span data-star="4">★</span><span data-star="5">★</span>
+    </div>
+    <label>ととのい度</label>
+    <div class="star-picker totonoi" id="visit-totonoi" data-value="0">
+      <span data-star="1">♨</span><span data-star="2">♨</span><span data-star="3">♨</span><span data-star="4">♨</span><span data-star="5">♨</span>
+    </div>
+    <div class="grid-2">
+      <div>
+        <label>サウナ室温度（℃）</label>
+        <input type="number" id="visit-sauna-temp" placeholder="例：90">
+      </div>
+      <div>
+        <label>水風呂温度（℃）</label>
+        <input type="number" id="visit-water-temp" placeholder="例：16">
+      </div>
+    </div>
+    <label>滞在時間（分）</label>
+    <input type="number" id="visit-duration" placeholder="例：90">
+    <label>メモ</label>
+    <textarea id="visit-memo" rows="3" placeholder="ロウリュの様子、感想など"></textarea>
+    <label>写真</label>
+    <input type="file" id="visit-photos" accept="image/*" multiple>
+    <div id="visit-photo-preview" class="photo-preview"></div>
+    <div class="modal-actions">
+      <button id="btn-delete-visit" class="btn-danger hidden">削除</button>
+      <div class="spacer"></div>
+      <button id="btn-cancel-visit" class="btn-ghost">キャンセル</button>
+      <button id="btn-save-visit" class="btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 写真拡大表示 -->
+<div id="photo-lightbox" class="modal-overlay hidden">
+  <div class="lightbox-content">
+    <img id="lightbox-img" src="" alt="写真">
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="db.js"></script>
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch((err) => console.error('SW registration failed', err));
+    });
+  }
+</script>
+</body>
+</html>
