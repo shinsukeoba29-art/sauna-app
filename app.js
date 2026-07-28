@@ -3,6 +3,9 @@ let saunas = [];
 let visits = [];
 let currentDetailSaunaId = null;
 let currentPhotos = []; // {blob, url, name} for the visit modal being edited
+let calendarDate = new Date();
+calendarDate.setDate(1);
+let selectedCalendarDate = null;
 
 // ---------- 初期化 ----------
 window.addEventListener('DOMContentLoaded', init);
@@ -12,6 +15,7 @@ async function init() {
   setupTabs();
   setupFacilityUI();
   setupVisitUI();
+  setupCalendarUI();
   setupExportImport();
   renderAll();
 }
@@ -25,6 +29,7 @@ function renderAll() {
   renderFacilityList();
   populateSaunaSelect(document.getElementById('visit-filter-sauna'), true);
   renderVisitList();
+  renderCalendar();
   renderStats();
 }
 
@@ -37,6 +42,7 @@ function setupTabs() {
       btn.classList.add('active');
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       if (btn.dataset.tab === 'stats') renderStats();
+      if (btn.dataset.tab === 'calendar') renderCalendar();
     });
   });
 }
@@ -439,6 +445,82 @@ async function deleteVisitRecord(id) {
   renderAll();
   if (currentDetailSaunaId) openFacilityDetail(currentDetailSaunaId);
   showToast('訪問記録を削除しました');
+}
+
+// ================= カレンダー =================
+function setupCalendarUI() {
+  document.getElementById('btn-cal-prev').addEventListener('click', () => {
+    calendarDate.setMonth(calendarDate.getMonth() - 1);
+    renderCalendar();
+  });
+  document.getElementById('btn-cal-next').addEventListener('click', () => {
+    calendarDate.setMonth(calendarDate.getMonth() + 1);
+    renderCalendar();
+  });
+}
+
+function dateKey(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function renderCalendar() {
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  document.getElementById('calendar-month-label').textContent = `${year}年 ${month + 1}月`;
+
+  const visitsByDate = {};
+  visits.forEach((v) => {
+    if (!v.date) return;
+    (visitsByDate[v.date] = visitsByDate[v.date] || []).push(v);
+  });
+
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayKey = dateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+  const grid = document.getElementById('calendar-grid');
+  let html = '';
+  for (let i = 0; i < firstDayOfWeek; i++) {
+    html += '<div class="calendar-day empty"></div>';
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const key = dateKey(year, month, d);
+    const dayVisits = visitsByDate[key] || [];
+    const classes = ['calendar-day'];
+    if (key === todayKey) classes.push('today');
+    if (key === selectedCalendarDate) classes.push('selected');
+    html += `
+      <div class="${classes.join(' ')}" data-date="${key}">
+        <span>${d}</span>
+        ${dayVisits.length ? `<span class="visit-count">${dayVisits.length}件</span>` : ''}
+      </div>`;
+  }
+  grid.innerHTML = html;
+
+  grid.querySelectorAll('.calendar-day:not(.empty)').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      selectedCalendarDate = cell.dataset.date === selectedCalendarDate ? null : cell.dataset.date;
+      renderCalendar();
+    });
+  });
+
+  renderCalendarDayPanel(visitsByDate);
+}
+
+function renderCalendarDayPanel(visitsByDate) {
+  const panel = document.getElementById('calendar-day-panel');
+  if (!selectedCalendarDate) {
+    panel.innerHTML = '';
+    return;
+  }
+  const dayVisits = (visitsByDate || {})[selectedCalendarDate] || [];
+  const label = formatDate(selectedCalendarDate);
+  if (!dayVisits.length) {
+    panel.innerHTML = `<h3>${label}</h3><div class="empty-state">この日の訪問記録はありません</div>`;
+    return;
+  }
+  panel.innerHTML = `<h3>${label}</h3><div class="visit-list">${dayVisits.map((v) => visitCardHtml(v, true)).join('')}</div>`;
+  attachVisitCardHandlers(panel);
 }
 
 // ================= 統計 =================

@@ -19,6 +19,7 @@
   <nav class="tabs">
     <button class="tab-btn active" data-tab="facilities">施設一覧</button>
     <button class="tab-btn" data-tab="visits">訪問記録</button>
+    <button class="tab-btn" data-tab="calendar">カレンダー</button>
     <button class="tab-btn" data-tab="stats">統計</button>
   </nav>
   <div class="header-actions">
@@ -47,6 +48,20 @@
       <button id="btn-add-visit" class="btn-primary">＋ 訪問記録を追加</button>
     </div>
     <div id="visit-list" class="visit-list"></div>
+  </section>
+
+  <!-- カレンダー -->
+  <section id="tab-calendar" class="tab-panel">
+    <div class="calendar-nav">
+      <button id="btn-cal-prev" class="btn-ghost">＜</button>
+      <h3 id="calendar-month-label"></h3>
+      <button id="btn-cal-next" class="btn-ghost">＞</button>
+    </div>
+    <div class="calendar-weekdays">
+      <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+    </div>
+    <div id="calendar-grid" class="calendar-grid"></div>
+    <div id="calendar-day-panel" class="calendar-day-panel"></div>
   </section>
 
   <!-- 統計 -->
