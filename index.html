@@ -34,6 +34,11 @@
   <section id="tab-facilities" class="tab-panel active">
     <div class="toolbar">
       <input type="search" id="facility-search" placeholder="施設名・住所・タグで検索">
+      <select id="facility-sort">
+        <option value="name">名前順</option>
+        <option value="visits">訪問回数が多い順</option>
+        <option value="rating">評価が高い順</option>
+      </select>
       <button id="btn-add-facility" class="btn-primary">＋ 施設を追加</button>
     </div>
     <div id="facility-list" class="card-grid"></div>

@@ -110,6 +110,11 @@ main {
   min-width: 200px;
 }
 
+.toolbar #facility-sort {
+  flex: 0 0 auto;
+  min-width: 160px;
+}
+
 input, select, textarea, button {
   font-family: inherit;
   font-size: 0.95rem;

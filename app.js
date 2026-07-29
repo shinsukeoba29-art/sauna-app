@@ -93,6 +93,7 @@ function formatDate(iso) {
 // ================= 施設 =================
 function setupFacilityUI() {
   document.getElementById('facility-search').addEventListener('input', (e) => renderFacilityList(e.target.value));
+  document.getElementById('facility-sort').addEventListener('change', () => renderFacilityList(document.getElementById('facility-search').value));
   document.getElementById('btn-add-facility').addEventListener('click', () => openFacilityModal());
   document.getElementById('btn-cancel-facility').addEventListener('click', closeFacilityModal);
   document.getElementById('btn-save-facility').addEventListener('click', saveFacility);
@@ -128,22 +129,30 @@ function renderFacilityList(filterText = '') {
     return;
   }
 
-  container.innerHTML = filtered
-    .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
-    .map((s) => {
-      const vList = visitsForSauna(s.id);
-      const avg = avgRating(vList);
-      return `
+  const sortBy = document.getElementById('facility-sort').value;
+  const withStats = filtered.map((s) => {
+    const vList = visitsForSauna(s.id);
+    return { sauna: s, visitCount: vList.length, avg: avgRating(vList) };
+  });
+  if (sortBy === 'visits') {
+    withStats.sort((a, b) => b.visitCount - a.visitCount || a.sauna.name.localeCompare(b.sauna.name, 'ja'));
+  } else if (sortBy === 'rating') {
+    withStats.sort((a, b) => b.avg - a.avg || a.sauna.name.localeCompare(b.sauna.name, 'ja'));
+  } else {
+    withStats.sort((a, b) => a.sauna.name.localeCompare(b.sauna.name, 'ja'));
+  }
+
+  container.innerHTML = withStats
+    .map(({ sauna: s, visitCount, avg }) => `
       <div class="facility-card" data-id="${s.id}">
         <h3>${escapeHtml(s.name)}</h3>
         <p class="muted">${escapeHtml(s.address || '住所未登録')}</p>
         <div class="tag-row">${(s.tags || []).map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
         <div class="meta-row">
-          <span>訪問 ${vList.length} 回</span>
-          <span>${vList.length ? starString(avg) : '評価なし'}</span>
+          <span>訪問 ${visitCount} 回</span>
+          <span>${visitCount ? starString(avg) : '評価なし'}</span>
         </div>
-      </div>`;
-    })
+      </div>`)
     .join('');
 
   container.querySelectorAll('.facility-card').forEach((card) => {
