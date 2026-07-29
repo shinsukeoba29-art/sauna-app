@@ -378,6 +378,40 @@ button {
 
 .calendar-day-panel { min-height: 40px; }
 
+.geocode-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.geocode-row .btn-ghost { padding: 6px 12px; font-size: 0.85rem; }
+.geocode-row .muted { font-size: 0.82rem; }
+
+.map-container {
+  height: 65vh;
+  min-height: 360px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--text);
+}
+.map-popup h4 { margin: 0 0 4px; }
+.map-popup p { margin: 0 0 4px; font-size: 0.85rem; color: var(--muted); }
+.map-popup button {
+  margin-top: 6px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
 .empty-state {
   text-align: center;
   color: var(--muted);
