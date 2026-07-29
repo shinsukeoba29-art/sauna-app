@@ -553,7 +553,7 @@ function renderRankingChart() {
     .map(([id, c]) => ({ name: (saunaById(Number(id)) || {}).name || '（削除済み）', count: c }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
-  el.innerHTML = barChartSvg(rows.map((r) => r.name), rows.map((r) => r.count), 'var(--primary)');
+  el.innerHTML = barChartSvg(rows.map((r) => r.name), rows.map((r) => r.count), 'var(--primary)', { rotateLabels: true });
 }
 
 function renderMonthlyChart() {
@@ -590,11 +590,12 @@ function truncateLabel(label, maxChars = 5) {
   return str.length > maxChars ? str.slice(0, maxChars) + '…' : str;
 }
 
-function barChartSvg(labels, values, color) {
-  const slot = 70;
+function barChartSvg(labels, values, color, options = {}) {
+  const { rotateLabels = false } = options;
+  const slot = rotateLabels ? 70 : 60;
   const w = Math.max(320, labels.length * slot);
-  const h = 240;
-  const padBottom = 70;
+  const h = rotateLabels ? 240 : 220;
+  const padBottom = rotateLabels ? 70 : 50;
   const padTop = 16;
   const max = Math.max(...values, 1);
   const barW = slot * 0.6;
@@ -606,13 +607,13 @@ function barChartSvg(labels, values, color) {
       const x = i * (barW + gap) + gap / 2;
       const y = h - padBottom - barH;
       const cx = x + barW / 2;
-      const labelY = h - padBottom + 14;
+      const label = rotateLabels
+        ? `<text x="${cx}" y="${h - padBottom + 14}" text-anchor="end" font-size="11" fill="currentColor" transform="rotate(-40 ${cx} ${h - padBottom + 14})"><title>${escapeHtml(String(labels[i]))}</title>${escapeHtml(truncateLabel(labels[i]))}</text>`
+        : `<text x="${cx}" y="${h - padBottom + 18}" text-anchor="middle" font-size="11" fill="currentColor">${escapeHtml(String(labels[i]))}</text>`;
       return `
         <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}"></rect>
         <text x="${cx}" y="${y - 6}" text-anchor="middle" font-size="12" fill="currentColor">${v}</text>
-        <text x="${cx}" y="${labelY}" text-anchor="end" font-size="11" fill="currentColor" transform="rotate(-40 ${cx} ${labelY})">
-          <title>${escapeHtml(String(labels[i]))}</title>${escapeHtml(truncateLabel(labels[i]))}
-        </text>
+        ${label}
       `;
     })
     .join('');
