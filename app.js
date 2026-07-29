@@ -585,24 +585,34 @@ function renderRatingChart() {
   el.innerHTML = barChartSvg(['★1', '★2', '★3', '★4', '★5'], counts, 'var(--star)');
 }
 
+function truncateLabel(label, maxChars = 5) {
+  const str = String(label);
+  return str.length > maxChars ? str.slice(0, maxChars) + '…' : str;
+}
+
 function barChartSvg(labels, values, color) {
-  const w = Math.max(320, labels.length * 60);
-  const h = 220;
-  const padBottom = 50;
+  const slot = 70;
+  const w = Math.max(320, labels.length * slot);
+  const h = 240;
+  const padBottom = 70;
   const padTop = 16;
   const max = Math.max(...values, 1);
-  const barW = (w / labels.length) * 0.6;
-  const gap = (w / labels.length) * 0.4;
+  const barW = slot * 0.6;
+  const gap = slot * 0.4;
 
   const bars = values
     .map((v, i) => {
       const barH = ((h - padBottom - padTop) * v) / max;
       const x = i * (barW + gap) + gap / 2;
       const y = h - padBottom - barH;
+      const cx = x + barW / 2;
+      const labelY = h - padBottom + 14;
       return `
         <rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="4" fill="${color}"></rect>
-        <text x="${x + barW / 2}" y="${y - 6}" text-anchor="middle" font-size="12" fill="currentColor">${v}</text>
-        <text x="${x + barW / 2}" y="${h - padBottom + 18}" text-anchor="middle" font-size="11" fill="currentColor">${escapeHtml(String(labels[i]))}</text>
+        <text x="${cx}" y="${y - 6}" text-anchor="middle" font-size="12" fill="currentColor">${v}</text>
+        <text x="${cx}" y="${labelY}" text-anchor="end" font-size="11" fill="currentColor" transform="rotate(-40 ${cx} ${labelY})">
+          <title>${escapeHtml(String(labels[i]))}</title>${escapeHtml(truncateLabel(labels[i]))}
+        </text>
       `;
     })
     .join('');
