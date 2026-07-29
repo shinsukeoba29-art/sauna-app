@@ -6,8 +6,6 @@ let currentPhotos = []; // {blob, url, name} for the visit modal being edited
 let calendarDate = new Date();
 calendarDate.setDate(1);
 let selectedCalendarDate = null;
-let leafletMap = null;
-let mapMarkers = [];
 
 // ---------- 初期化 ----------
 window.addEventListener('DOMContentLoaded', init);
@@ -45,7 +43,6 @@ function setupTabs() {
       document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
       if (btn.dataset.tab === 'stats') renderStats();
       if (btn.dataset.tab === 'calendar') renderCalendar();
-      if (btn.dataset.tab === 'map') renderMap();
     });
   });
 }
@@ -115,32 +112,6 @@ function setupFacilityUI() {
     closeFacilityDetail();
     openFacilityModal(id);
   });
-  document.getElementById('btn-geocode').addEventListener('click', geocodeFacilityAddress);
-}
-
-async function geocodeFacilityAddress() {
-  const address = document.getElementById('facility-address').value.trim();
-  const statusEl = document.getElementById('geocode-status');
-  if (!address) {
-    showToast('先に住所を入力してください');
-    return;
-  }
-  statusEl.textContent = '検索中…';
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(address)}`;
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
-    const results = await res.json();
-    if (!results.length) {
-      statusEl.textContent = '見つかりませんでした';
-      return;
-    }
-    document.getElementById('facility-lat').value = results[0].lat;
-    document.getElementById('facility-lng').value = results[0].lon;
-    statusEl.textContent = `取得できました（${Number(results[0].lat).toFixed(4)}, ${Number(results[0].lon).toFixed(4)}）`;
-  } catch (err) {
-    console.error(err);
-    statusEl.textContent = '取得に失敗しました';
-  }
 }
 
 function renderFacilityList(filterText = '') {
@@ -189,9 +160,6 @@ function openFacilityModal(id = null) {
   document.getElementById('facility-address').value = s ? s.address || '' : '';
   document.getElementById('facility-tags').value = s ? (s.tags || []).join(', ') : '';
   document.getElementById('facility-memo').value = s ? s.memo || '' : '';
-  document.getElementById('facility-lat').value = s && s.lat != null ? s.lat : '';
-  document.getElementById('facility-lng').value = s && s.lng != null ? s.lng : '';
-  document.getElementById('geocode-status').textContent = s && s.lat != null ? '位置情報あり' : '';
   document.getElementById('btn-delete-facility').classList.toggle('hidden', !id);
   modal.classList.remove('hidden');
 }
@@ -207,15 +175,11 @@ async function saveFacility() {
     return;
   }
   const id = document.getElementById('facility-id').value;
-  const latVal = document.getElementById('facility-lat').value;
-  const lngVal = document.getElementById('facility-lng').value;
   const data = {
     name,
     address: document.getElementById('facility-address').value.trim(),
     tags: parseTags(document.getElementById('facility-tags').value),
     memo: document.getElementById('facility-memo').value.trim(),
-    lat: latVal ? Number(latVal) : null,
-    lng: lngVal ? Number(lngVal) : null,
   };
   if (id) {
     data.id = Number(id);
@@ -557,58 +521,6 @@ function renderCalendarDayPanel(visitsByDate) {
   }
   panel.innerHTML = `<h3>${label}</h3><div class="visit-list">${dayVisits.map((v) => visitCardHtml(v, true)).join('')}</div>`;
   attachVisitCardHandlers(panel);
-}
-
-// ================= 地図 =================
-function renderMap() {
-  const withCoords = saunas.filter((s) => s.lat != null && s.lng != null);
-  const emptyState = document.getElementById('map-empty-state');
-
-  if (!saunas.length) {
-    emptyState.textContent = 'まだ施設が登録されていません。「施設一覧」から追加しましょう。';
-    emptyState.classList.remove('hidden');
-    document.getElementById('map').classList.add('hidden');
-    return;
-  }
-  if (!withCoords.length) {
-    emptyState.textContent = '位置情報が登録された施設がありません。施設の編集画面で「住所から地図位置を取得」してください。';
-    emptyState.classList.remove('hidden');
-    document.getElementById('map').classList.add('hidden');
-    return;
-  }
-  emptyState.classList.add('hidden');
-  document.getElementById('map').classList.remove('hidden');
-
-  if (!leafletMap) {
-    leafletMap = L.map('map');
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19,
-    }).addTo(leafletMap);
-  }
-
-  mapMarkers.forEach((m) => leafletMap.removeLayer(m));
-  mapMarkers = withCoords.map((s) => {
-    const vList = visitsForSauna(s.id);
-    const marker = L.marker([s.lat, s.lng]).addTo(leafletMap);
-    const popupEl = document.createElement('div');
-    popupEl.className = 'map-popup';
-    popupEl.innerHTML = `
-      <h4>${escapeHtml(s.name)}</h4>
-      <p>${escapeHtml(s.address || '')}</p>
-      <p>訪問 ${vList.length} 回</p>
-      <button type="button">詳細を見る</button>
-    `;
-    popupEl.querySelector('button').addEventListener('click', () => openFacilityDetail(s.id));
-    marker.bindPopup(popupEl);
-    return marker;
-  });
-
-  const bounds = L.latLngBounds(withCoords.map((s) => [s.lat, s.lng]));
-  setTimeout(() => {
-    leafletMap.invalidateSize();
-    leafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
-  }, 0);
 }
 
 // ================= 統計 =================
